@@ -22,6 +22,7 @@ const (
 	archCPUModelField         = genericCPUModelField
 	archGenuineIntel          = "GenuineIntel"
 	archAuthenticAMD          = "AuthenticAMD"
+	archHygonGenuine          = "HygonGenuine"
 	msgKernelVM               = "Kernel-based Virtual Machine"
 	msgKernelVirtio           = "Host kernel accelerator for virtio"
 	msgKernelVirtioNet        = "Host kernel accelerator for virtio network"
@@ -43,6 +44,7 @@ const (
 const (
 	cpuTypeIntel   = 0
 	cpuTypeAMD     = 1
+    cpuTypeHygon = 2
 	cpuTypeUnknown = -1
 )
 
@@ -206,6 +208,37 @@ func setCPUtype(hypervisorType vc.HypervisorType) error {
 				required: false,
 			},
 		}
+	} else if cpuType == cpuTypeHygon {
+		archRequiredCPUFlags = map[string]string{
+			cpuFlagSVM:    "Virtualization support",
+			cpuFlagLM:     "64Bit CPU",
+			cpuFlagSSE4_1: "SSE4.1",
+		}
+		archRequiredCPUAttribs = map[string]string{
+			archHygonGenuine: "AMD Architecture CPU",
+		}
+		archRequiredKernelModules = map[string]kernelModule{
+			kernelModkvm: {
+				desc:     msgKernelVM,
+				required: true,
+			},
+			kernelModkvmamd: {
+				desc:     "AMD KVM",
+				required: true,
+			},
+			kernelModvhost: {
+				desc:     msgKernelVirtio,
+				required: true,
+			},
+			kernelModvhostnet: {
+				desc:     msgKernelVirtioNet,
+				required: true,
+			},
+			kernelModvhostvsock: {
+				desc:     msgKernelVirtioVhostVsock,
+				required: false,
+			},
+		}
 	}
 
 	return nil
@@ -222,6 +255,8 @@ func getCPUtype() int {
 		return cpuTypeIntel
 	} else if strings.Contains(str, archAuthenticAMD) {
 		return cpuTypeAMD
+	} else if strings.Contains(str, archHygonGenuine) {
+		return cpuTypeHygon
 	} else {
 		return cpuTypeUnknown
 	}
